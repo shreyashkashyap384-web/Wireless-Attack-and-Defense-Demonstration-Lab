@@ -1,0 +1,21 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+venv/
+env/
+.env
+
+# OS and Editor temp files
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Intermediate generation & scratch test scripts
+test_*.py
+test_*.ps1
+*report_generator*.py
+clean_report_script.py
