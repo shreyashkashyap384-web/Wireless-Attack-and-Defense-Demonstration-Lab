@@ -1,0 +1,237 @@
+{% extends "base.html" %}
+{% block title %}WADL — Interactive Wireless Attack &amp; Defense Lab{% endblock %}
+
+{% block content %}
+<div class="lab-header">
+  <div>
+    <span class="lab-tag">INTERACTIVE SIMULATION LAB</span>
+    <h1>Wireless Attack &amp; Defense Sandbox</h1>
+    <p class="lab-subtitle">Test active 802.11 exploits against real-time defense controls to observe frame-level mitigation.</p>
+  </div>
+  <div class="lab-actions">
+    <button class="btn-secondary" id="btn-reset" onclick="resetLab()">🔄 Reset Sandbox</button>
+  </div>
+</div>
+
+<!-- TOPOLOGY CANVAS & NODE STATES -->
+<div class="topology-panel">
+  <div class="topology-header">
+    <span class="panel-title">Virtual 802.11 RF Environment</span>
+    <div class="env-badges">
+      <span class="env-badge" id="badge-ap-security">WPA2-PSK (AES)</span>
+      <span class="env-badge" id="badge-ap-mfp">MFP: OFF</span>
+      <span class="env-badge" id="badge-ap-wps">WPS: ACTIVE</span>
+    </div>
+  </div>
+
+  <div class="canvas-container">
+    <svg id="network-canvas" viewBox="0 0 800 240">
+      <!-- Connection paths -->
+      <path id="path-ap-victim" d="M 180 120 L 400 120" stroke="#334464" stroke-width="2" stroke-dasharray="4 4" fill="none" />
+      <path id="path-attacker-victim" d="M 620 120 L 400 120" stroke="#334464" stroke-width="2" stroke-dasharray="4 4" fill="none" />
+      <path id="path-attacker-ap" d="M 620 120 Q 400 30 180 120" stroke="#334464" stroke-width="2" stroke-dasharray="4 4" fill="none" />
+
+      <!-- Active animated packet pulses injected via JS -->
+      <g id="packet-layer"></g>
+
+      <!-- Shield overlay for Victim or AP when protected -->
+      <g id="shield-group" opacity="0">
+        <circle cx="400" cy="120" r="54" fill="none" stroke="#10b981" stroke-width="2.5" stroke-dasharray="6 3">
+          <animateTransform attributeName="transform" type="rotate" from="0 400 120" to="360 400 120" dur="8s" repeatCount="indefinite"/>
+        </circle>
+        <circle cx="400" cy="120" r="48" fill="rgba(16, 185, 129, 0.08)" />
+      </g>
+    </svg>
+
+    <!-- Node 1: Target AP -->
+    <div class="topology-node node-ap" style="left: 12%; top: 50%;">
+      <div class="node-icon">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+          <path d="M5 12.55a11 11 0 0 1 14.08 0"></path>
+          <path d="M1.42 9a16 16 0 0 1 21.16 0"></path>
+          <path d="M8.53 16.11a6 6 0 0 1 6.95 0"></path>
+          <line x1="12" y1="20" x2="12.01" y2="20"></line>
+        </svg>
+      </div>
+      <div class="node-name">Target AP</div>
+      <div class="node-meta">SSID: Lab-Secure-AP</div>
+      <div class="node-sub">MAC: 02:00:00:00:00:01</div>
+      <div class="node-state-pill pill-online" id="node-ap-status">BROADCASTING</div>
+    </div>
+
+    <!-- Node 2: Victim Client -->
+    <div class="topology-node node-victim" id="node-victim-el" style="left: 50%; top: 50%;">
+      <div class="node-icon">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+          <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
+          <line x1="8" y1="21" x2="16" y2="21"></line>
+          <line x1="12" y1="17" x2="12" y2="21"></line>
+        </svg>
+      </div>
+      <div class="node-name">Victim Station</div>
+      <div class="node-meta">IP: 192.168.1.105</div>
+      <div class="node-sub">Ping: <span id="victim-ping">12 ms</span> | Loss: <span id="victim-loss">0%</span></div>
+      <div class="node-state-pill pill-online" id="node-victim-status">CONNECTED</div>
+    </div>
+
+    <!-- Node 3: Attacker Rig -->
+    <div class="topology-node node-attacker" style="left: 88%; top: 50%;">
+      <div class="node-icon">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+          <circle cx="12" cy="12" r="10"></circle>
+          <line x1="12" y1="8" x2="12" y2="12"></line>
+          <line x1="12" y1="16" x2="12.01" y2="16"></line>
+        </svg>
+      </div>
+      <div class="node-name">Attacker Rig</div>
+      <div class="node-meta">Interface: wlan0mon</div>
+      <div class="node-sub">MAC: 00:11:22:33:44:55</div>
+      <div class="node-state-pill pill-idle" id="node-attacker-status">STANDBY</div>
+    </div>
+  </div>
+</div>
+
+<!-- CONTROLS ROW: ATTACK CONTROLS + DEFENSE SWITCHES -->
+<div class="controls-grid">
+  <!-- Attack Configuration -->
+  <div class="control-card">
+    <div class="card-title-row">
+      <h3>1. Select Attack Scenario</h3>
+      <span class="step-indicator">ATTACK DECK</span>
+    </div>
+
+    <div class="scenario-selector">
+      <label class="scenario-option selected">
+        <input type="radio" name="attack_scenario" value="deauth" checked>
+        <div class="scenario-details">
+          <strong>Deauthentication Flood</strong>
+          <p>Forges deauth frames from AP to forcibly drop victim connection.</p>
+        </div>
+      </label>
+
+      <label class="scenario-option">
+        <input type="radio" name="attack_scenario" value="evil-twin">
+        <div class="scenario-details">
+          <strong>Evil Twin / Rogue AP</strong>
+          <p>Spawns duplicate SSID at higher signal to hijack victim traffic.</p>
+        </div>
+      </label>
+
+      <label class="scenario-option">
+        <input type="radio" name="attack_scenario" value="wps">
+        <div class="scenario-details">
+          <strong>WPS PIN Brute Force</strong>
+          <p>Exploits split-PIN flaw to uncover WPA2 key in ~11,000 queries.</p>
+        </div>
+      </label>
+
+      <label class="scenario-option">
+        <input type="radio" name="attack_scenario" value="pmkid">
+        <div class="scenario-details">
+          <strong>PMKID Offline Hash Extraction</strong>
+          <p>Steals handshake hash from beacon without needing a connected victim.</p>
+        </div>
+      </label>
+    </div>
+
+    <div class="launch-actions">
+      <button class="btn-danger-action" id="btn-launch-attack" onclick="launchSimulation()">
+        ⚡ RUN ATTACK SIMULATION
+      </button>
+    </div>
+  </div>
+
+  <!-- Defensive Configuration -->
+  <div class="control-card">
+    <div class="card-title-row">
+      <h3>2. Configure Defensive Controls</h3>
+      <span class="step-indicator">ROUTER HARDENING</span>
+    </div>
+
+    <div class="defense-settings-group">
+      <div class="setting-item">
+        <div class="setting-text">
+          <strong>Security Protocol Mode</strong>
+          <p>WPA3 enforces Dragonfly handshake and disables vulnerable legacy features.</p>
+        </div>
+        <div class="segmented-control">
+          <label class="segment active">
+            <input type="radio" name="wpa_mode" value="wpa2" checked onchange="updateDefenses()"> WPA2
+          </label>
+          <label class="segment">
+            <input type="radio" name="wpa_mode" value="wpa3" onchange="updateDefenses()"> WPA3-SAE
+          </label>
+        </div>
+      </div>
+
+      <div class="setting-item">
+        <div class="setting-text">
+          <strong>802.11w Management Frame Protection (MFP)</strong>
+          <p>Cryptographically signs deauth/disassociation frames with BIP key.</p>
+        </div>
+        <label class="switch">
+          <input type="checkbox" id="toggle-mfp" onchange="updateDefenses()">
+          <span class="slider"></span>
+        </label>
+      </div>
+
+      <div class="setting-item">
+        <div class="setting-text">
+          <strong>Wi-Fi Protected Setup (WPS)</strong>
+          <p>PIN-based router association. Highly vulnerable if kept enabled.</p>
+        </div>
+        <label class="switch">
+          <input type="checkbox" id="toggle-wps" checked onchange="updateDefenses()">
+          <span class="slider"></span>
+        </label>
+      </div>
+
+      <div class="setting-item">
+        <div class="setting-text">
+          <strong>Rogue AP Detection / WIDS Sensor</strong>
+          <p>Client validates AP BSSID and alerts on duplicate SSID clones.</p>
+        </div>
+        <label class="switch">
+          <input type="checkbox" id="toggle-wids" onchange="updateDefenses()">
+          <span class="slider"></span>
+        </label>
+      </div>
+    </div>
+
+    <div class="launch-actions">
+      <button class="btn-safe-action" id="btn-launch-defense" onclick="launchDefenseSimulation()">
+        🛡️ RUN DEFENSE SIMULATION (TEST MITIGATION)
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- OUTCOME VERDICT & INSPECTION DECK -->
+<div class="live-inspection-grid">
+  <!-- Live Execution Logs -->
+  <div class="inspection-panel">
+    <div class="panel-header">
+      <span>Attacker Terminal &amp; Frame Monitor</span>
+      <span class="status-dot-live"></span>
+    </div>
+    <div class="terminal-view" id="terminal-output">
+      <div class="term-line text-dim">[WADL Engine] Simulation ready. Select an attack and click Run.</div>
+      <div class="term-line text-dim">[AP Monitor] Monitoring 802.11 frames on channel 6...</div>
+    </div>
+  </div>
+
+  <!-- Frame Dissector & Analysis -->
+  <div class="inspection-panel">
+    <div class="panel-header">
+      <span>802.11 Frame Dissector &amp; Verdict</span>
+      <span id="verdict-tag" class="verdict-tag verdict-idle">IDLE</span>
+    </div>
+    <div class="verdict-content" id="verdict-content">
+      <div class="empty-state">
+        <p>No active simulation running.</p>
+        <p class="text-dim">Trigger an attack above to observe frame exchange and mitigation analysis.</p>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

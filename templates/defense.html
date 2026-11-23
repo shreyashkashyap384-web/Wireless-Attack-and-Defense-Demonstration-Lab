@@ -1,0 +1,98 @@
+{% extends "base.html" %}
+{% block title %}{{ defense.name }} — WADL Defense{% endblock %}
+
+{% block content %}
+<div class="breadcrumb">
+  <a href="/">&larr; Back to Dashboard</a> / <span>Defense Hardening</span>
+</div>
+
+<div class="detail-header">
+  <div class="detail-badge-group">
+    <span class="badge badge-safe">DEFENSE SPECIFICATION</span>
+    <span class="tag">IMPLEMENTATION: {{ defense.difficulty|upper }}</span>
+  </div>
+  <h1>{{ defense.name }}</h1>
+  <p class="detail-lead">{{ defense.description }}</p>
+</div>
+
+<div class="detail-layout">
+  <div class="detail-main">
+    <section class="detail-card">
+      <h2>Step-by-Step Implementation Procedure</h2>
+      <p class="section-intro">Follow these steps on your network equipment, access points, or operating systems to configure this mitigation.</p>
+      
+      <div class="steps-flow">
+        {% for step in defense.steps %}
+        <div class="step-row">
+          <div class="step-num">{{ loop.index }}</div>
+          <div class="step-content">
+            <p>{{ step }}</p>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </section>
+
+    {% if related %}
+    <section class="detail-card">
+      <h2>Neutralized Attack Vectors</h2>
+      <p class="section-intro">Attacks mitigated by implementing this defensive configuration:</p>
+      <div class="related-attacks-list">
+        {% for a in related %}
+        <div class="related-attack-item">
+          <div>
+            <strong>{{ a.name }}</strong>
+            <p class="text-muted">{{ a.summary }}</p>
+          </div>
+          <a href="/attack/{{ a.id }}" class="btn-outline">Review Exploit &rarr;</a>
+        </div>
+        {% endfor %}
+      </div>
+    </section>
+    {% endif %}
+  </div>
+
+  <div class="detail-sidebar">
+    <div class="sidebar-box metric-box">
+      <h3>Defense Metrics</h3>
+      <div class="metric-row">
+        <span>Effectiveness</span>
+        <span class="star-rating">{% for _ in range(defense.effectiveness) %}★{% endfor %}</span>
+      </div>
+      <div class="metric-row">
+        <span>Implementation Difficulty</span>
+        <span><strong>{{ defense.difficulty }}</strong></span>
+      </div>
+      <div class="metric-row">
+        <span>Scope</span>
+        <span>Network Infrastructure</span>
+      </div>
+    </div>
+
+    <div class="sidebar-box">
+      <h3>Directly Counters</h3>
+      <div class="pill-group" style="margin-top: 10px;">
+        {% for c in defense.counters %}
+        <span class="pill pill-highlight">{{ c }}</span>
+        {% endfor %}
+      </div>
+    </div>
+
+    <div class="sidebar-box">
+      <h3>Verification Checklist</h3>
+      <label class="checklist-item">
+        <input type="checkbox" checked disabled> Protocol option validated
+      </label>
+      <label class="checklist-item">
+        <input type="checkbox" checked disabled> AP firmware current
+      </label>
+      <label class="checklist-item">
+        <input type="checkbox"> Client compatibility tested
+      </label>
+      <label class="checklist-item">
+        <input type="checkbox"> Fallback/legacy mode disabled
+      </label>
+    </div>
+  </div>
+</div>
+{% endblock %}

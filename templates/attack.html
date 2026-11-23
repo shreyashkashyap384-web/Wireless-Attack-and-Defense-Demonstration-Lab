@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+{% block title %}{{ attack.name }} — WADL{% endblock %}
+
+{% block content %}
+<div class="breadcrumb">
+  <a href="/">&larr; Back to Dashboard</a> / <span>Attack Demonstration</span>
+</div>
+
+<div class="detail-header">
+  <div class="detail-badge-group">
+    <span class="badge badge-{{ attack.severity|lower }}">{{ attack.severity }} SEVERITY</span>
+    <span class="tag">802.11 VULNERABILITY</span>
+  </div>
+  <h1>{{ attack.name }}</h1>
+  <p class="detail-lead">{{ attack.summary }}</p>
+</div>
+
+<div class="detail-layout">
+  <div class="detail-main">
+    <section class="detail-card">
+      <h2>Step-by-Step Attack Mechanism</h2>
+      <p class="section-intro">How the threat actor identifies, prepares, and triggers this exploit against targeted endpoints.</p>
+      
+      <div class="steps-flow">
+        {% for step in attack.how %}
+        <div class="step-row">
+          <div class="step-num">0{{ loop.index }}</div>
+          <div class="step-content">
+            <p>{{ step }}</p>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </section>
+
+    <section class="detail-card">
+      <h2>Technical Reference / Execution Context</h2>
+      <p class="section-intro">Educational pseudocode or configuration illustrating the underlying attack behavior.</p>
+      <div class="code-wrapper">
+        <div class="code-header">
+          <span>Terminal / Script Reference</span>
+          <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+        </div>
+        <pre><code>{{ attack.code }}</code></pre>
+      </div>
+      <div class="warning-callout">
+        <strong>Educational Notice:</strong> These reference commands are for understanding protocol weaknesses and defensive verification in an authorized lab environment only.
+      </div>
+    </section>
+  </div>
+
+  <div class="detail-sidebar">
+    {% if defense %}
+    <div class="sidebar-box defense-box">
+      <h3>Recommended Defense</h3>
+      <div class="defense-box-name">{{ defense.name }}</div>
+      <p class="defense-box-desc">{{ defense.description[:180] }}...</p>
+      
+      <div class="defense-stats">
+        <div>
+          <span class="stat-key">Difficulty:</span>
+          <span class="stat-val">{{ defense.difficulty }}</span>
+        </div>
+        <div>
+          <span class="stat-key">Effectiveness:</span>
+          <span class="stat-val star-rating">{% for _ in range(defense.effectiveness) %}★{% endfor %}</span>
+        </div>
+      </div>
+
+      <a href="/defense/{{ defense.id }}" class="btn-primary block-btn">View Hardening Guide &rarr;</a>
+    </div>
+    {% endif %}
+
+    <div class="sidebar-box info-box">
+      <h3>Impact Summary</h3>
+      <ul class="clean-list">
+        <li><strong>Confidentiality:</strong> {% if attack.severity in ['CRITICAL', 'HIGH'] %}Compromised{% else %}Partially Impacted{% endif %}</li>
+        <li><strong>Integrity:</strong> {% if attack.id in ['evil-twin', 'krack'] %}Manipulatable (MITM){% else %}Protected or N/A{% endif %}</li>
+        <li><strong>Availability:</strong> {% if attack.id == 'deauth' %}Complete Denial of Service{% else %}Usually Maintained{% endif %}</li>
+      </ul>
+    </div>
+  </div>
+</div>
+{% endblock %}
